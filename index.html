@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>LAG</title>
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
@@ -35,9 +34,9 @@ body {
 }
 
 .container {
-  max-width:900px;
+  max-width:1000px;
   margin:0 auto;
-  padding:40px 20px;
+  padding:30px 20px;
 }
 
 .header {
@@ -47,7 +46,7 @@ body {
 }
 
 .logo {
-  font-weight:800;
+  font-weight:900;
   letter-spacing:3px;
 }
 
@@ -71,7 +70,7 @@ button {
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
-  padding:20px;
+  padding:18px;
   margin-top:15px;
 }
 
@@ -90,7 +89,7 @@ input {
 .row {
   display:flex;
   justify-content:space-between;
-  padding:8px 0;
+  padding:6px 0;
   border-bottom:1px solid var(--border);
   color:var(--muted);
   font-size:14px;
@@ -100,7 +99,7 @@ input {
   display:inline-block;
   padding:4px 10px;
   border-radius:999px;
-  background:rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.08);
   margin-bottom:8px;
   font-size:12px;
 }
@@ -130,6 +129,16 @@ input {
   0% {left:-100%;}
   100% {left:100%;}
 }
+
+.grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+
+@media(max-width:800px){
+  .grid {grid-template-columns:1fr;}
+}
 </style>
 </head>
 
@@ -148,29 +157,58 @@ input {
 <!-- LOGIN -->
 <div id="login" class="card">
   <h2>Enter LAG</h2>
-
   <input id="username" placeholder="username">
   <input id="wallet" placeholder="wallet address">
-
   <button onclick="login()">Continue</button>
 </div>
 
 <!-- APP -->
 <div id="app">
 
-  <div class="card">
-    <h2 id="hello"></h2>
-    <div id="walletDisplay" class="small"></div>
+  <div class="grid">
 
-    <button id="testBtn" onclick="runTest()">Test My Lag</button>
-    <button onclick="shareResult()">Share Result</button>
+    <!-- PROFILE -->
+    <div class="card">
+      <h3>Profile</h3>
 
-    <div id="result" style="margin-top:10px;"></div>
+      <div class="row"><span>User</span><span id="u_name"></span></div>
+      <div class="row"><span>Wallet</span><span id="u_wallet"></span></div>
+      <div class="row"><span>Level</span><span id="u_level"></span></div>
+      <div class="row"><span>XP</span><span id="u_xp"></span></div>
+      <div class="row"><span>LAG</span><span id="u_lag"></span></div>
+    </div>
+
+    <!-- TEST -->
+    <div class="card">
+      <h3>Network Test</h3>
+      <button id="testBtn" onclick="runTest()">Run Test</button>
+      <div id="result" style="margin-top:10px;"></div>
+    </div>
+
   </div>
 
+  <!-- LEADERBOARD -->
   <div class="card">
     <h3>Leaderboard</h3>
     <div id="board"></div>
+  </div>
+
+  <!-- SHOP -->
+  <div class="card">
+    <h3>Shop</h3>
+    <div class="small">Spend LAG to remove ads & unlock cosmetics</div>
+
+    <div class="row"><span>Remove Ads (30 days)</span><span>100 LAG</span></div>
+    <div class="row"><span>Neon Theme</span><span>250 LAG</span></div>
+    <div class="row"><span>Lag Lord Badge</span><span>500 LAG</span></div>
+  </div>
+
+  <!-- AD (SINGLE SMALL ONE) -->
+  <div class="card">
+    <div class="badge">Sponsored</div>
+    <div class="small">Improve your internet with better routing tools</div>
+    <button class="secondary">Learn More</button>
+    <div class="small" style="margin-top:10px;">Remove ads for 100 LAG</div>
   </div>
 
 </div>
@@ -189,25 +227,23 @@ let user=null;
 let lastResult=null;
 
 /* LOGIN */
-window.login = async function () {
-  const username = document.getElementById("username").value.trim();
-  const wallet = document.getElementById("wallet").value.trim();
+window.login = async function(){
+  const username=document.getElementById("username").value.trim();
+  const wallet=document.getElementById("wallet").value.trim();
+  if(!username||!wallet) return;
 
-  if (!username || !wallet) return;
-
-  const { data: existing } = await supabase
+  const {data:existing}=await supabase
     .from("lag_users")
     .select("*")
-    .eq("wallet", wallet)
-    .limit(1);
+    .eq("wallet",wallet);
 
-  if (existing.length) user = existing[0];
-  else {
-    const { data } = await supabase
+  if(existing.length) user=existing[0];
+  else{
+    const {data}=await supabase
       .from("lag_users")
-      .insert([{ username, wallet }])
+      .insert([{username,wallet}])
       .select();
-    user = data[0];
+    user=data[0];
   }
 
   document.getElementById("login").style.display="none";
@@ -216,81 +252,88 @@ window.login = async function () {
   refresh();
 };
 
-/* LAG TEST */
-window.runTest = async function () {
-  const btn = document.getElementById("testBtn");
+/* TEST */
+window.runTest = async function(){
+  const btn=document.getElementById("testBtn");
   btn.classList.add("scan");
-  btn.innerText="Scanning...";
+  btn.innerText="Testing...";
 
-  const t0 = performance.now();
+  const t0=performance.now();
   await fetch("https://www.cloudflare.com/cdn-cgi/trace",{cache:"no-store"});
-  const latency = performance.now()-t0;
+  const latency=performance.now()-t0;
 
-  const t1 = performance.now();
-  const res = await fetch("https://speed.cloudflare.com/__down?bytes=300000");
-  const blob = await res.blob();
-  const mbps = (blob.size*8)/((performance.now()-t1)/1000)/1_000_000;
+  const t1=performance.now();
+  const res=await fetch("https://speed.cloudflare.com/__down?bytes=200000");
+  const blob=await res.blob();
+  const mbps=(blob.size*8)/((performance.now()-t1)/1000)/1_000_000;
 
-  const score = Math.min(150, Math.max(5, (latency/5)+(20/(mbps+0.1))));
+  const score=Math.min(150,Math.max(5,(latency/5)+(20/(mbps+0.1))));
 
-  let rarity="🟡 Normal";
-  if(score>25) rarity="🟣 LEGENDARY LAG";
-  else if(score>18) rarity="🔴 Dial-up Energy";
-  else if(score>10) rarity="🟠 Laggy";
-  else if(score>6) rarity="🟡 Normal";
-  else rarity="🟢 Fast Fiber";
+  let rarity="Normal";
+  if(score>25) rarity="LEGENDARY";
+  else if(score>15) rarity="BAD";
+  else if(score>8) rarity="OK";
+  else rarity="FAST";
 
-  lastResult = {score, latency, mbps, rarity};
+  const earnedXP=Math.round(score*2);
+  const earnedLAG=Math.round(score);
+
+  user.xp=(user.xp||0)+earnedXP;
+  user.lagcoins=(user.lagcoins||0)+earnedLAG;
+
+  if(score>(user.bestscore||0)){
+    user.bestscore=score;
+  }
+
+  await supabase
+    .from("lag_users")
+    .update({
+      xp:user.xp,
+      lagcoins:user.lagcoins,
+      bestscore:user.bestscore
+    })
+    .eq("id",user.id);
+
+  lastResult={score,latency,mbps,rarity};
 
   document.getElementById("result").innerHTML=`
     <div class="badge">${rarity}</div><br>
-    ⚡ Score: <b>${score.toFixed(1)}</b><br>
-    📶 Ping: ${latency.toFixed(0)}ms<br>
-    🌐 Speed: ${mbps.toFixed(2)} Mbps
+    Score: ${score.toFixed(1)}<br>
+    Ping: ${latency.toFixed(0)}ms<br>
+    Speed: ${mbps.toFixed(2)} Mbps<br><br>
+    +${earnedXP} XP<br>
+    +${earnedLAG} LAG
   `;
 
   btn.classList.remove("scan");
-  btn.innerText="Test My Lag";
+  btn.innerText="Run Test";
 
   refresh();
 };
 
-/* SHARE */
-window.shareResult = async function () {
-  if(!lastResult) return;
-
-  const text =
-`⚡ LAG TEST RESULT
-${lastResult.rarity}
-
-Score: ${lastResult.score.toFixed(1)}
-Ping: ${lastResult.latency.toFixed(0)}ms
-Speed: ${lastResult.mbps.toFixed(2)} Mbps
-
-Wallet: ${user.wallet.slice(0,6)}...${user.wallet.slice(-4)}`;
-
-  await navigator.clipboard.writeText(text);
-  alert("Copied result card!");
-};
-
 /* UI */
 function refresh(){
-  document.getElementById("hello").innerText="Welcome "+user.username;
-  document.getElementById("walletDisplay").innerText =
-    "Wallet: "+user.wallet.slice(0,6)+"..."+user.wallet.slice(-4);
+  document.getElementById("u_name").innerText=user.username;
 
-  loadLeaderboard();
+  document.getElementById("u_wallet").innerText=
+    user.wallet.slice(0,6)+"..."+user.wallet.slice(-4);
+
+  document.getElementById("u_xp").innerText=user.xp||0;
+  document.getElementById("u_lag").innerText=user.lagcoins||0;
+  document.getElementById("u_level").innerText=Math.floor((user.xp||0)/100)+1;
+
+  loadBoard();
 }
 
 /* LEADERBOARD */
-async function loadLeaderboard(){
-  const { data } = await supabase
+async function loadBoard(){
+  const {data}=await supabase
     .from("lag_users")
     .select("*")
     .order("bestscore",{ascending:false})
     .limit(10);
 
-  document.getElementById("board").innerHTML =
+  document.getElementById("board").innerHTML=
     data.map((u,i)=>`
       <div class="row">
         <span>${i+1}. ${u.username}</span>
@@ -304,6 +347,7 @@ window.toggleTheme=()=>document.body.classList.toggle("light");
 
 /* LOGOUT */
 window.logout=()=>location.reload();
+
 </script>
 
 </body>
