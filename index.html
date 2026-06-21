@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAG</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f0f0f;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 540px;
+    text-align: center;
+    background: #1b1b1b;
+    border-radius: 20px;
+    padding: 25px;
+}
+
+h1 {
+    font-size: 4rem;
+    margin: 0;
+}
+
+input {
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    margin-top: 10px;
+    width: 70%;
+    text-align: center;
+}
+
+button {
+    background: white;
+    color: black;
+    border: none;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.bar {
+    width: 100%;
+    height: 14px;
+    background: #333;
+    border-radius: 10px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.fill {
+    height: 100%;
+    width: 0%;
+    background: lime;
+    transition: 0.3s;
+}
+
+.score {
+    font-size: 60px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.status {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.small {
+    opacity: 0.8;
+    margin-top: 10px;
+}
+
+.section {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #333;
+}
+
+.leaderboard {
+    text-align: left;
+    margin-top: 10px;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>LAG</h1>
+
+<input id="username" placeholder="Enter username">
+
+<br>
+<button onclick="runTest()">Start Test</button>
+
+<div class="bar">
+    <div class="fill" id="fill"></div>
+</div>
+
+<div id="results">
+    <p>Enter a name and start testing</p>
+</div>
+
+<div class="section">
+    <h3>🏆 Leaderboard</h3>
+    <div id="board" class="leaderboard"></div>
+</div>
+
+</div>
+
+<script>
+
+let leaderboard = JSON.parse(localStorage.getItem("board")) || [];
+
+function setBar(pct,color){
+    document.getElementById("fill").style.width = pct + "%";
+    document.getElementById("fill").style.background = color;
+}
+
+function score(ping,jitter,download){
+    let s = 100;
+    s -= ping*0.4;
+    s -= jitter*0.3;
+    s += download*0.25;
+    return Math.max(0,Math.min(100,Math.floor(s)));
+}
+
+function status(s){
+    if(s<=30) return {t:"🔴 Laggy",c:"red"};
+    if(s<=70) return {t:"🟡 Okay",c:"orange"};
+    return {t:"🟢 Excellent",c:"lime"};
+}
+
+async function runTest(){
+
+    let name = document.getElementById("username").value || "Player";
+
+    document.getElementById("results").innerHTML = "<p>Testing...</p>";
+
+    let ping = Math.random()*80+10;
+    let jitter = Math.random()*20;
+    let download = Math.random()*120;
+
+    let s = score(ping,jitter,download);
+    let st = status(s);
+
+    setBar(s,st.c);
+
+    leaderboard.push({
+        name,
+        score:s,
+        time:new Date().toLocaleTimeString()
+    });
+
+    leaderboard.sort((a,b)=>b.score-a.score);
+    leaderboard = leaderboard.slice(0,10);
+
+    localStorage.setItem("board",JSON.stringify(leaderboard));
+
+    updateBoard();
+
+    document.getElementById("results").innerHTML = `
+        <div class="score" style="color:${st.c}">${s}</div>
+        <div class="status" style="color:${st.c}">${st.t}</div>
+        <div class="small">
+            Ping: ${ping.toFixed(1)}ms | Download: ${download.toFixed(1)}Mbps
+        </div>
+    `;
+}
+
+function updateBoard(){
+    document.getElementById("board").innerHTML =
+        leaderboard.map((p,i)=>
+            `${i+1}. ${p.name} — ${p.score}/100`
+        ).join("<br>");
+}
+
+updateBoard();
+
+</script>
+
+</body>
+</html>
