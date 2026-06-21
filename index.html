@@ -8,185 +8,240 @@
 <style>
 body {
   margin:0;
-  font-family:Arial;
-  background:#0f0f0f;
-  color:white;
+  font-family:system-ui;
+  background:#0a0a0d;
+  color:#fff;
+}
+
+.app {
+  max-width:700px;
+  margin:0 auto;
+  padding:40px 20px;
+}
+
+.top {
   display:flex;
-  justify-content:center;
+  justify-content:space-between;
   align-items:center;
-  min-height:100vh;
+  margin-bottom:30px;
 }
 
-.container {
-  width:95%;
-  max-width:500px;
-  background:#1c1c1c;
-  padding:20px;
-  border-radius:15px;
-  text-align:center;
-}
-
-input {
-  width:85%;
-  padding:10px;
-  margin:6px;
-  border-radius:10px;
-  border:none;
+.logo {
+  font-weight:600;
+  letter-spacing:2px;
 }
 
 button {
-  padding:10px 15px;
-  margin:5px;
+  padding:10px 12px;
   border-radius:10px;
-  border:none;
+  border:0;
+  background:#5b5ef7;
+  color:#fff;
+  font-weight:600;
   cursor:pointer;
-  font-weight:bold;
+  margin-top:10px;
 }
 
-.bar {
+input {
   width:100%;
-  height:12px;
-  background:#333;
+  padding:12px;
+  margin-top:10px;
   border-radius:10px;
-  overflow:hidden;
+  border:1px solid #222;
+  background:#111116;
+  color:#fff;
 }
 
-.fill {
-  height:100%;
-  width:0%;
-  background:lime;
-  transition:0.3s;
+.card {
+  background:#14141b;
+  border:1px solid #222;
+  border-radius:14px;
+  padding:18px;
+  margin-top:15px;
 }
 
-#app { display:none; }
-.small { font-size:12px; color:gray; }
+.row {
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  font-size:14px;
+  color:#ccc;
+}
+
+.small {
+  color:#888;
+  font-size:12px;
+}
+
+#appUI { display:none; }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="app">
 
-<h1>🌐 LAG</h1>
-
-<div id="login">
-  <input id="username" placeholder="username">
-  <input id="wallet" placeholder="wallet (optional)">
-  <button onclick="connectWallet()">Connect Wallet</button>
-  <button onclick="login()">Enter</button>
-  <p class="small">Wallet optional • Username required</p>
+<div class="top">
+  <div class="logo">LAG</div>
 </div>
 
-<div id="app">
+<!-- LOGIN -->
+<div id="login">
+  <div class="card">
+    <h2>Create Account</h2>
 
-  <h3 id="welcome"></h3>
+    <input id="username" placeholder="username">
+    <input id="wallet" placeholder="wallet address (0x...)">
 
-  <button onclick="runTest()">Run Lag Test</button>
-  <button onclick="loadLeaderboard()">Refresh Leaderboard</button>
-  <button onclick="logout()">Logout</button>
+    <button onclick="connectWallet()">Connect MetaMask</button>
+    <button onclick="login()">Enter</button>
 
-  <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="small">Wallet required (manual or connect)</div>
+  </div>
+</div>
 
-  <h2 id="score"></h2>
+<!-- APP -->
+<div id="appUI">
 
-  <h3>🏆 Leaderboard</h3>
-  <div id="board"></div>
+  <div class="card">
+    <h2 id="hello"></h2>
+    <div id="walletDisplay" class="small"></div>
+
+    <button onclick="verifyWallet()">Verify Wallet</button>
+    <button onclick="runTest()">Run Lag Test</button>
+  </div>
+
+  <div class="card">
+    <h3>Stats</h3>
+    <div class="row"><span>XP</span><span id="xp">0</span></div>
+    <div class="row"><span>Level</span><span id="lvl">1</span></div>
+    <div class="row"><span>Coins</span><span id="coins">0</span></div>
+    <div class="row"><span>Wallet Verified</span><span id="verified">No</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Leaderboard</h3>
+    <div id="board"></div>
+  </div>
 
 </div>
 
 </div>
 
 <script type="module">
-
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-const supabaseUrl = "https://kkechuargolbljqkmmfw.supabase.co";
-const supabaseKey = "sb_publishable_2WcBHKhVZ_MMHahZbzWqZQ_l9_MkQh1";
+const supabase = createClient(
+  "https://kkechuargolbljqkmmfw.supabase.co",
+  "sb_publishable_2WcBHKhVZ_MMHahZbzWqZQ_l9_MkQh1"
+);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+let user = null;
+let walletConnected = null;
 
-let currentUser = null;
-let walletAddr = null;
-
-// WALLET CONNECT (optional)
-window.connectWallet = async function() {
+/* CONNECT WALLET */
+window.connectWallet = async function () {
   if (window.ethereum) {
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    walletAddr = accounts[0];
-    alert("Connected: " + walletAddr);
+    const acc = await window.ethereum.request({ method: "eth_requestAccounts" });
+    walletConnected = acc[0];
+    alert("Connected: " + walletConnected);
   } else {
-    alert("No wallet found (MetaMask etc.)");
+    alert("No wallet found");
   }
 };
 
-// LOGIN / CREATE USER
-window.login = async function() {
-  const username = document.getElementById("username").value;
+/* LOGIN */
+window.login = async function () {
+  const username = document.getElementById("username").value.trim();
+  const wallet = document.getElementById("wallet").value.trim() || walletConnected;
 
-  if (!username) return alert("Enter username");
-
-  let wallet = walletAddr;
+  if (!username) return;
+  if (!wallet) return alert("Wallet required");
 
   const { data } = await supabase
     .from("lag_users")
     .insert([{ username, wallet }])
     .select();
 
-  currentUser = data[0];
+  user = data[0];
 
   document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
+  document.getElementById("appUI").style.display = "block";
 
-  document.getElementById("welcome").innerText =
-    "Welcome " + currentUser.username;
-
-  loadLeaderboard();
+  refresh();
 };
 
-// LAG TEST
-window.runTest = async function() {
-  let score = Math.floor(Math.random() * 100);
+/* VERIFY WALLET */
+window.verifyWallet = async function () {
+  if (!user.wallet) return alert("No wallet");
 
-  let xp = (currentUser.xp || 0) + score;
-  let level = Math.floor(xp / 100) + 1;
-  let coins = (currentUser.lagcoins || 0) + Math.floor(score / 10);
+  const { data } = await supabase
+    .from("lag_users")
+    .update({ wallet: user.wallet })
+    .eq("id", user.id)
+    .select();
+
+  user = data[0];
+  refresh();
+};
+
+/* TEST */
+window.runTest = async function () {
+  const score = Math.floor(Math.random() * 100);
+
+  const xp = (user.xp || 0) + score;
+  const coins = (user.lagcoins || 0) + Math.floor(score / 10);
 
   const { data } = await supabase
     .from("lag_users")
     .update({
       xp,
       lagcoins: coins,
-      bestscore: Math.max(currentUser.bestscore || 0, score)
+      bestscore: Math.max(user.bestscore || 0, score)
     })
-    .eq("id", currentUser.id)
+    .eq("id", user.id)
     .select();
 
-  currentUser = data[0];
-
-  document.getElementById("fill").style.width = score + "%";
-  document.getElementById("score").innerText =
-    `Score: ${score} | XP: ${xp} | Level: ${level}`;
+  user = data[0];
+  refresh();
 };
 
-// LEADERBOARD
-window.loadLeaderboard = async function() {
+/* UI */
+function refresh() {
+  document.getElementById("hello").innerText =
+    "Welcome " + user.username;
+
+  document.getElementById("xp").innerText = user.xp || 0;
+  document.getElementById("lvl").innerText = Math.floor((user.xp || 0)/100)+1;
+  document.getElementById("coins").innerText = user.lagcoins || 0;
+
+  document.getElementById("verified").innerText =
+    user.wallet ? "Yes" : "No";
+
+  document.getElementById("walletDisplay").innerText =
+    "Wallet: " + (user.wallet
+      ? user.wallet.slice(0,6) + "..." + user.wallet.slice(-4)
+      : "None");
+
+  loadLeaderboard();
+}
+
+/* LEADERBOARD */
+async function loadLeaderboard() {
   const { data } = await supabase
     .from("lag_users")
     .select("*")
-    .order("bestscore", { ascending: false })
+    .order("bestscore", { ascending:false })
     .limit(10);
 
   document.getElementById("board").innerHTML =
-    data.map((u, i) =>
-      `<p>${i+1}. ${u.username} — ${u.bestscore || 0}</p>`
-    ).join("");
-};
-
-// LOGOUT
-window.logout = function() {
-  location.reload();
-};
-
+    data.map((u,i)=>`
+      <div class="row">
+        <span>${i+1}. ${u.username}</span>
+        <span>${u.bestscore||0}</span>
+      </div>
+    `).join("");
+}
 </script>
 
 </body>
