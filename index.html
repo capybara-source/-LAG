@@ -3,14 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>LAG</title>
 
+<!-- TAB ICON -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
 <style>
+:root {
+  --bg:#0a0a0d;
+  --card:#14141b;
+  --text:#fff;
+  --muted:#888;
+  --border:#222;
+  --accent:#5b5ef7;
+}
+
+.light {
+  --bg:#f5f6ff;
+  --card:#ffffff;
+  --text:#111;
+  --muted:#555;
+  --border:#ddd;
+  --accent:#4b4fff;
+}
+
 body {
   margin:0;
   font-family:system-ui;
-  background:#0a0a0d;
-  color:#fff;
+  background:var(--bg);
+  color:var(--text);
+  transition:0.3s;
 }
 
 .app {
@@ -27,16 +50,16 @@ body {
 }
 
 .logo {
-  font-weight:600;
+  font-weight:700;
   letter-spacing:2px;
 }
 
 button {
   padding:10px 12px;
   border-radius:10px;
-  border:0;
-  background:#5b5ef7;
-  color:#fff;
+  border:1px solid var(--border);
+  background:var(--accent);
+  color:white;
   font-weight:600;
   cursor:pointer;
   margin-top:10px;
@@ -47,14 +70,14 @@ input {
   padding:12px;
   margin-top:10px;
   border-radius:10px;
-  border:1px solid #222;
-  background:#111116;
-  color:#fff;
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--text);
 }
 
 .card {
-  background:#14141b;
-  border:1px solid #222;
+  background:var(--card);
+  border:1px solid var(--border);
   border-radius:14px;
   padding:18px;
   margin-top:15px;
@@ -65,15 +88,21 @@ input {
   justify-content:space-between;
   padding:6px 0;
   font-size:14px;
-  color:#ccc;
+  color:var(--muted);
 }
 
 .small {
-  color:#888;
+  color:var(--muted);
   font-size:12px;
 }
 
 #appUI { display:none; }
+
+.toggle {
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text);
+}
 </style>
 </head>
 
@@ -81,8 +110,14 @@ input {
 
 <div class="app">
 
+<!-- TOP BAR -->
 <div class="top">
-  <div class="logo">LAG</div>
+  <div class="logo">⚡ LAG</div>
+
+  <div>
+    <button class="toggle" onclick="toggleTheme()">🌓</button>
+    <button class="toggle" onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <!-- LOGIN -->
@@ -107,7 +142,6 @@ input {
     <h2 id="hello"></h2>
     <div id="walletDisplay" class="small"></div>
 
-    <button onclick="verifyWallet()">Verify Wallet</button>
     <button onclick="runTest()">Run Lag Test</button>
   </div>
 
@@ -116,7 +150,7 @@ input {
     <div class="row"><span>XP</span><span id="xp">0</span></div>
     <div class="row"><span>Level</span><span id="lvl">1</span></div>
     <div class="row"><span>Coins</span><span id="coins">0</span></div>
-    <div class="row"><span>Wallet Verified</span><span id="verified">No</span></div>
+    <div class="row"><span>Wallet</span><span id="walletState">-</span></div>
   </div>
 
   <div class="card">
@@ -139,7 +173,12 @@ const supabase = createClient(
 let user = null;
 let walletConnected = null;
 
-/* CONNECT WALLET */
+/* THEME */
+window.toggleTheme = function () {
+  document.body.classList.toggle("light");
+};
+
+/* WALLET CONNECT */
 window.connectWallet = async function () {
   if (window.ethereum) {
     const acc = await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -150,7 +189,7 @@ window.connectWallet = async function () {
   }
 };
 
-/* LOGIN */
+/* LOGIN (FIXED - now loads existing users) */
 window.login = async function () {
   const username = document.getElementById("username").value.trim();
   const wallet = document.getElementById("wallet").value.trim() || walletConnected;
@@ -158,30 +197,27 @@ window.login = async function () {
   if (!username) return;
   if (!wallet) return alert("Wallet required");
 
-  const { data } = await supabase
+  // 🔍 CHECK EXISTING USER
+  const { data: existing } = await supabase
     .from("lag_users")
-    .insert([{ username, wallet }])
-    .select();
+    .select("*")
+    .eq("wallet", wallet)
+    .limit(1);
 
-  user = data[0];
+  if (existing && existing.length > 0) {
+    user = existing[0];
+  } else {
+    const { data } = await supabase
+      .from("lag_users")
+      .insert([{ username, wallet }])
+      .select();
+
+    user = data[0];
+  }
 
   document.getElementById("login").style.display = "none";
   document.getElementById("appUI").style.display = "block";
 
-  refresh();
-};
-
-/* VERIFY WALLET */
-window.verifyWallet = async function () {
-  if (!user.wallet) return alert("No wallet");
-
-  const { data } = await supabase
-    .from("lag_users")
-    .update({ wallet: user.wallet })
-    .eq("id", user.id)
-    .select();
-
-  user = data[0];
   refresh();
 };
 
@@ -215,13 +251,11 @@ function refresh() {
   document.getElementById("lvl").innerText = Math.floor((user.xp || 0)/100)+1;
   document.getElementById("coins").innerText = user.lagcoins || 0;
 
-  document.getElementById("verified").innerText =
-    user.wallet ? "Yes" : "No";
+  document.getElementById("walletState").innerText =
+    user.wallet ? "Connected" : "None";
 
   document.getElementById("walletDisplay").innerText =
-    "Wallet: " + (user.wallet
-      ? user.wallet.slice(0,6) + "..." + user.wallet.slice(-4)
-      : "None");
+    user.wallet ? user.wallet.slice(0,6)+"..."+user.wallet.slice(-4) : "";
 
   loadLeaderboard();
 }
@@ -242,6 +276,11 @@ async function loadLeaderboard() {
       </div>
     `).join("");
 }
+
+/* LOGOUT */
+window.logout = function () {
+  location.reload();
+};
 </script>
 
 </body>
