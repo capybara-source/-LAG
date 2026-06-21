@@ -107,7 +107,7 @@ button {
     <div id="result"></div>
 
     <h3>🏆 Leaderboard</h3>
-    <div id="board" class="board"></div>
+    <div id="board"></div>
 
 </div>
 
@@ -115,7 +115,7 @@ button {
 
 </div>
 
-<!-- Firebase -->
+<!-- 🔥 FIREBASE (COMPAT - REQUIRED FOR GITHUB PAGES) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -127,7 +127,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCKDIEqDutPjTcMRQBfsH4sY",
   authDomain: "lag-crypto.firebaseapp.com",
   projectId: "lag-crypto",
-  storageBucket: "lag-crypto.firebasestorage.app",
+  storageBucket: "lag-crypto.appspot.com",
   messagingSenderId: "671955950297",
   appId: "1:671955950297:web:851dbe941e3a4f5a6bbcc8"
 };
@@ -139,7 +139,7 @@ const db = firebase.firestore();
 
 let currentUser = null;
 
-// 🧠 DEBUG LOGGER
+// 🧠 LOG FUNCTION
 function log(msg){
     console.log(msg);
     document.getElementById("debug").innerText += msg + "\n";
@@ -149,8 +149,8 @@ function log(msg){
 function signup(){
     log("Signing up...");
 
-    let email = emailInput();
-    let pass = passInput();
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
 
     auth.createUserWithEmailAndPassword(email, pass)
     .then(() => log("Signup success"))
@@ -161,8 +161,8 @@ function signup(){
 function login(){
     log("Logging in...");
 
-    let email = emailInput();
-    let pass = passInput();
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
 
     auth.signInWithEmailAndPassword(email, pass)
     .then(() => log("Login success"))
@@ -179,6 +179,7 @@ function logout(){
 auth.onAuthStateChanged(user => {
     if(user){
         currentUser = user;
+
         log("User logged in: " + user.email);
 
         document.getElementById("loginBox").style.display = "none";
@@ -188,6 +189,7 @@ auth.onAuthStateChanged(user => {
         loadBoard();
     } else {
         currentUser = null;
+
         log("User logged out");
 
         document.getElementById("loginBox").style.display = "block";
@@ -195,7 +197,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 🎮 TEST
+// 🎮 TEST FUNCTION
 function runTest(){
 
     log("Test started");
@@ -254,15 +256,6 @@ function loadBoard(){
     .catch(err => {
         log("Leaderboard error: " + err.message);
     });
-}
-
-// helpers
-function emailInput(){
-    return document.getElementById("email").value;
-}
-
-function passInput(){
-    return document.getElementById("password").value;
 }
 
 </script>
