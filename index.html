@@ -7,65 +7,59 @@
 
 <style>
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f0f0f;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  margin:0;
+  font-family:Arial;
+  background:#0f0f0f;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
 }
 
 .container {
-    width: 90%;
-    max-width: 500px;
-    background: #1c1c1c;
-    padding: 20px;
-    border-radius: 15px;
-    text-align: center;
+  width:95%;
+  max-width:500px;
+  background:#1c1c1c;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
 }
 
 input {
-    width: 85%;
-    padding: 10px;
-    margin: 6px;
-    border-radius: 10px;
-    border: none;
-    text-align: center;
+  width:85%;
+  padding:10px;
+  margin:6px;
+  border-radius:10px;
+  border:none;
 }
 
 button {
-    padding: 10px 15px;
-    margin: 6px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
+  padding:10px 15px;
+  margin:5px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
 }
 
 .bar {
-    width: 100%;
-    height: 14px;
-    background: #333;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 10px;
+  width:100%;
+  height:12px;
+  background:#333;
+  border-radius:10px;
+  overflow:hidden;
 }
 
 .fill {
-    height: 100%;
-    width: 0%;
-    background: lime;
-    transition: 0.3s;
-}
-
-.small {
-    font-size: 12px;
-    color: gray;
+  height:100%;
+  width:0%;
+  background:lime;
+  transition:0.3s;
 }
 
 #app { display:none; }
+.small { font-size:12px; color:gray; }
 </style>
 </head>
 
@@ -75,88 +69,123 @@ button {
 
 <h1>🌐 LAG</h1>
 
-<!-- LOGIN -->
 <div id="login">
-    <input id="wallet" placeholder="Wallet address (0x...)">
-    <input id="name" placeholder="username">
-    <br>
-    <button onclick="login()">Login / Create</button>
-    <p class="small">No passwords — wallet = identity</p>
+  <input id="username" placeholder="username">
+  <input id="wallet" placeholder="wallet (optional)">
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <button onclick="login()">Enter</button>
+  <p class="small">Wallet optional • Username required</p>
 </div>
 
-<!-- APP -->
 <div id="app">
 
-    <h3 id="welcome"></h3>
+  <h3 id="welcome"></h3>
 
-    <button onclick="runTest()">Run Lag Test</button>
-    <button onclick="logout()">Logout</button>
+  <button onclick="runTest()">Run Lag Test</button>
+  <button onclick="loadLeaderboard()">Refresh Leaderboard</button>
+  <button onclick="logout()">Logout</button>
 
-    <div class="bar">
-        <div class="fill" id="fill"></div>
-    </div>
+  <div class="bar"><div class="fill" id="fill"></div></div>
 
-    <h2 id="score"></h2>
+  <h2 id="score"></h2>
+
+  <h3>🏆 Leaderboard</h3>
+  <div id="board"></div>
 
 </div>
 
 </div>
 
-<script>
+<script type="module">
 
-// fake database (stored in browser)
-let db = JSON.parse(localStorage.getItem("LAG_DB") || "{}");
-let currentWallet = null;
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-function save(){
-    localStorage.setItem("LAG_DB", JSON.stringify(db));
-}
+const supabaseUrl = "https://kkechuargolbljqkmmfw.supabase.co";
+const supabaseKey = "sb_publishable_2WcBHKhVZ_MMHahZbzWqZQ_l9_MkQh1";
 
-function login(){
-    let wallet = document.getElementById("wallet").value.trim();
-    let name = document.getElementById("name").value.trim();
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if(!wallet){
-        alert("Enter wallet address");
-        return;
-    }
+let currentUser = null;
+let walletAddr = null;
 
-    if(!db[wallet]){
-        db[wallet] = {
-            name: name || "anon",
-            score: 0
-        };
-    }
+// WALLET CONNECT (optional)
+window.connectWallet = async function() {
+  if (window.ethereum) {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    walletAddr = accounts[0];
+    alert("Connected: " + walletAddr);
+  } else {
+    alert("No wallet found (MetaMask etc.)");
+  }
+};
 
-    currentWallet = wallet;
+// LOGIN / CREATE USER
+window.login = async function() {
+  const username = document.getElementById("username").value;
 
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
+  if (!username) return alert("Enter username");
 
-    document.getElementById("welcome").innerText =
-        "Welcome " + db[wallet].name;
+  let wallet = walletAddr;
 
-    save();
-}
+  const { data } = await supabase
+    .from("lag_users")
+    .insert([{ username, wallet }])
+    .select();
 
-function logout(){
-    currentWallet = null;
-    document.getElementById("login").style.display = "block";
-    document.getElementById("app").style.display = "none";
-}
+  currentUser = data[0];
 
-function runTest(){
-    if(!currentWallet) return;
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
 
-    let score = Math.floor(Math.random() * 100);
+  document.getElementById("welcome").innerText =
+    "Welcome " + currentUser.username;
 
-    db[currentWallet].score = score;
-    save();
+  loadLeaderboard();
+};
 
-    document.getElementById("fill").style.width = score + "%";
-    document.getElementById("score").innerText =
-        "Lag Score: " + score;
-}
+// LAG TEST
+window.runTest = async function() {
+  let score = Math.floor(Math.random() * 100);
+
+  let xp = (currentUser.xp || 0) + score;
+  let level = Math.floor(xp / 100) + 1;
+  let coins = (currentUser.lagcoins || 0) + Math.floor(score / 10);
+
+  const { data } = await supabase
+    .from("lag_users")
+    .update({
+      xp,
+      lagcoins: coins,
+      bestscore: Math.max(currentUser.bestscore || 0, score)
+    })
+    .eq("id", currentUser.id)
+    .select();
+
+  currentUser = data[0];
+
+  document.getElementById("fill").style.width = score + "%";
+  document.getElementById("score").innerText =
+    `Score: ${score} | XP: ${xp} | Level: ${level}`;
+};
+
+// LEADERBOARD
+window.loadLeaderboard = async function() {
+  const { data } = await supabase
+    .from("lag_users")
+    .select("*")
+    .order("bestscore", { ascending: false })
+    .limit(10);
+
+  document.getElementById("board").innerHTML =
+    data.map((u, i) =>
+      `<p>${i+1}. ${u.username} — ${u.bestscore || 0}</p>`
+    ).join("");
+};
+
+// LOGOUT
+window.logout = function() {
+  location.reload();
+};
 
 </script>
 
