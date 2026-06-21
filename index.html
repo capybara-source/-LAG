@@ -2,253 +2,123 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LAG</title>
+<title>LAG Wallet Login</title>
 
 <style>
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f0f0f;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+    background:#0f0f0f;
+    color:white;
+    font-family:Arial;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
 }
 
-.container {
-    width: 90%;
-    max-width: 520px;
-    text-align: center;
-    background: #1b1b1b;
-    border-radius: 20px;
-    padding: 25px;
+.box {
+    background:#1b1b1b;
+    padding:20px;
+    border-radius:15px;
+    width:320px;
+    text-align:center;
 }
-
-h1 { font-size: 3rem; }
 
 input {
-    width: 80%;
-    padding: 10px;
-    margin: 5px;
-    border-radius: 10px;
-    border: none;
-    text-align: center;
+    width:90%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:10px;
+    border:none;
 }
 
 button {
-    padding: 10px 15px;
-    margin: 5px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
+    padding:10px;
+    margin-top:10px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
 }
 
-#loginBox { margin-bottom: 15px; }
-
-.bar {
-    width: 100%;
-    height: 14px;
-    background: #333;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 10px;
-}
-
-.fill {
-    height: 100%;
-    width: 0%;
-    background: lime;
-    transition: 0.3s;
-}
-
-.board {
-    text-align: left;
-    margin-top: 10px;
-    font-size: 14px;
-}
-
-#debug {
-    margin-top: 10px;
-    font-size: 12px;
-    color: yellow;
-    white-space: pre-line;
-}
+.small { font-size:12px; color:gray; }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="box">
 
-<h1>🌐 LAG</h1>
+<h2>🌐 LAG Wallet Login</h2>
 
-<div id="loginBox">
-    <input id="email" placeholder="email">
-    <input id="password" type="password" placeholder="password">
-    <br>
-    <button onclick="signup()">Sign Up</button>
-    <button onclick="login()">Login</button>
+<div id="login">
+    <input id="wallet" placeholder="Enter wallet address (0x...)">
+    <input id="name" placeholder="username">
+    <button onclick="login()">Login / Create Account</button>
+    <p class="small">No passwords. Wallet = identity</p>
 </div>
 
 <div id="app" style="display:none">
 
-    <p>Logged in as: <span id="user"></span></p>
+    <h3 id="welcome"></h3>
 
-    <button onclick="runTest()">Start Test</button>
+    <button onclick="runTest()">Run Lag Test</button>
     <button onclick="logout()">Logout</button>
 
-    <div class="bar">
-        <div class="fill" id="fill"></div>
-    </div>
-
-    <div id="result"></div>
-
-    <h3>🏆 Leaderboard</h3>
-    <div id="board"></div>
+    <h3 id="score"></h3>
 
 </div>
 
-<div id="debug"></div>
-
 </div>
-
-<!-- 🔥 FIREBASE COMPAT SDK (THIS IS THE CORRECT ONE) -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
 
-// 🔥 Firebase config (MUST MATCH YOUR PROJECT)
-const firebaseConfig = {
-  apiKey: "AIzaSyCKDIEqDutPjTcMRQBfsH4sY",
-  authDomain: "lag-crypto.firebaseapp.com",
-  projectId: "lag-crypto",
-  storageBucket: "lag-crypto.appspot.com",
-  messagingSenderId: "671955950297",
-  appId: "1:671955950297:web:851dbe941e3a4f5a6bbcc8"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
 let currentUser = null;
 
-// 🧠 LOG
-function log(msg){
-    console.log(msg);
-    document.getElementById("debug").innerText += msg + "\n";
+// fake DB (for now)
+let db = JSON.parse(localStorage.getItem("lag_db") || "{}");
+
+function saveDB(){
+    localStorage.setItem("lag_db", JSON.stringify(db));
 }
 
-// 🔐 SIGN UP
-function signup(){
-    const email = document.getElementById("email").value;
-    const pass = document.getElementById("password").value;
-
-    log("Signing up...");
-
-    auth.createUserWithEmailAndPassword(email, pass)
-    .then(() => log("Signup success"))
-    .catch(e => log("Signup error: " + e.message));
-}
-
-// 🔐 LOGIN
 function login(){
-    const email = document.getElementById("email").value;
-    const pass = document.getElementById("password").value;
+    let wallet = document.getElementById("wallet").value;
+    let name = document.getElementById("name").value;
 
-    log("Logging in...");
+    if(!wallet) return alert("Enter wallet");
 
-    auth.signInWithEmailAndPassword(email, pass)
-    .then(() => log("Login success"))
-    .catch(e => log("Login error: " + e.message));
+    if(!db[wallet]){
+        db[wallet] = {
+            name: name || "anon",
+            score: 0
+        };
+    }
+
+    currentUser = wallet;
+
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    document.getElementById("welcome").innerText =
+        "Welcome " + db[wallet].name;
+
+    saveDB();
 }
 
-// 🔓 LOGOUT
 function logout(){
-    auth.signOut();
-    log("Logged out");
+    currentUser = null;
+    document.getElementById("login").style.display = "block";
+    document.getElementById("app").style.display = "none";
 }
 
-// 👤 AUTH STATE
-auth.onAuthStateChanged(user => {
-    if(user){
-        currentUser = user;
-
-        log("User logged in: " + user.email);
-
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("app").style.display = "block";
-        document.getElementById("user").innerText = user.email;
-
-        loadBoard();
-    } else {
-        currentUser = null;
-
-        log("User logged out");
-
-        document.getElementById("loginBox").style.display = "block";
-        document.getElementById("app").style.display = "none";
-    }
-});
-
-// 🎮 TEST
 function runTest(){
-
-    if(!currentUser){
-        log("ERROR: not logged in");
-        alert("Login first");
-        return;
-    }
-
     let score = Math.floor(Math.random()*100);
 
-    document.getElementById("fill").style.width = score + "%";
-    document.getElementById("result").innerHTML = "<h2>Score: " + score + "</h2>";
+    db[currentUser].score = score;
+    saveDB();
 
-    log("Score: " + score);
-
-    db.collection("leaderboard").add({
-        uid: currentUser.uid,
-        email: currentUser.email,
-        score: score,
-        time: Date.now()
-    })
-    .then(() => {
-        log("WRITE SUCCESS ✅");
-        loadBoard();
-    })
-    .catch(err => {
-        log("WRITE ERROR ❌ " + err.message);
-    });
-}
-
-// 🏆 LEADERBOARD
-function loadBoard(){
-
-    db.collection("leaderboard")
-    .orderBy("score","desc")
-    .limit(10)
-    .get()
-    .then(snapshot => {
-
-        let html = "";
-
-        snapshot.forEach(doc => {
-            let d = doc.data();
-            html += `<div>${d.email} — ${d.score}</div>`;
-        });
-
-        document.getElementById("board").innerHTML = html;
-    })
-    .catch(err => {
-        log("Leaderboard error: " + err.message);
-    });
+    document.getElementById("score").innerText =
+        "Lag Score: " + score;
 }
 
 </script>
