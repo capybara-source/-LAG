@@ -115,14 +115,14 @@ button {
 
 </div>
 
-<!-- 🔥 FIREBASE (COMPAT - REQUIRED FOR GITHUB PAGES) -->
+<!-- 🔥 FIREBASE COMPAT SDK (THIS IS THE CORRECT ONE) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
 
-// 🔥 Firebase config
+// 🔥 Firebase config (MUST MATCH YOUR PROJECT)
 const firebaseConfig = {
   apiKey: "AIzaSyCKDIEqDutPjTcMRQBfsH4sY",
   authDomain: "lag-crypto.firebaseapp.com",
@@ -139,7 +139,7 @@ const db = firebase.firestore();
 
 let currentUser = null;
 
-// 🧠 LOG FUNCTION
+// 🧠 LOG
 function log(msg){
     console.log(msg);
     document.getElementById("debug").innerText += msg + "\n";
@@ -147,10 +147,10 @@ function log(msg){
 
 // 🔐 SIGN UP
 function signup(){
-    log("Signing up...");
-
     const email = document.getElementById("email").value;
     const pass = document.getElementById("password").value;
+
+    log("Signing up...");
 
     auth.createUserWithEmailAndPassword(email, pass)
     .then(() => log("Signup success"))
@@ -159,10 +159,10 @@ function signup(){
 
 // 🔐 LOGIN
 function login(){
-    log("Logging in...");
-
     const email = document.getElementById("email").value;
     const pass = document.getElementById("password").value;
+
+    log("Logging in...");
 
     auth.signInWithEmailAndPassword(email, pass)
     .then(() => log("Login success"))
@@ -197,10 +197,8 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 🎮 TEST FUNCTION
+// 🎮 TEST
 function runTest(){
-
-    log("Test started");
 
     if(!currentUser){
         log("ERROR: not logged in");
@@ -227,14 +225,11 @@ function runTest(){
     })
     .catch(err => {
         log("WRITE ERROR ❌ " + err.message);
-        alert(err.message);
     });
 }
 
 // 🏆 LEADERBOARD
 function loadBoard(){
-
-    log("Loading leaderboard...");
 
     db.collection("leaderboard")
     .orderBy("score","desc")
@@ -250,8 +245,6 @@ function loadBoard(){
         });
 
         document.getElementById("board").innerHTML = html;
-
-        log("Leaderboard loaded");
     })
     .catch(err => {
         log("Leaderboard error: " + err.message);
